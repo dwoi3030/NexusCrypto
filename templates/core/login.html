@@ -55,7 +55,7 @@
                     <p>Trading volume: <strong>$10B+</strong></p>
                 </div>
 
-                <form action="{% url 'login' %}" method="post">
+                <form action="{% url 'signup_start' %}" method="post">
                     {% csrf_token %}
                     {% if error %}<p class="form-error">{{ error }}</p>{% endif %}
                     <div class="input-group">
@@ -91,7 +91,7 @@
                 </form>
 
                 <div class="footer-link">
-                    Already have an account? <a href="#">Log In</a>
+                    Already have an account? <a href="{% url 'login' %}">Log In</a>
                 </div>
             </div>
         </div>

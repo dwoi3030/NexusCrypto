@@ -1,7 +1,8 @@
 import random
 from datetime import timedelta
 
-from django.contrib.auth import get_user_model, login as auth_login
+from django.contrib.auth import authenticate, get_user_model, login as auth_login
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.password_validation import validate_password
 from django.shortcuts import redirect, render
@@ -23,17 +24,28 @@ def _create_otp_for_user(user):
 
 
 def index(request):
-    """Landing page."""
+    """Public landing page shown at root URL."""
     return render(request, 'core/index.html')
+
+
+@login_required(login_url='login')
+def dashboard(request):
+    """Main dashboard; only authenticated users can view it."""
+    return render(request, 'core/dashboard.html')
 
 
 class SignupEmailView(View):
     """Step 1: collect email, store in session, redirect to password step."""
 
     def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
         return render(request, 'core/login.html')
 
     def post(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+
         email = (request.POST.get('email') or '').strip().lower()
         terms = request.POST.get('terms') == 'on'
 
@@ -63,15 +75,21 @@ class SignupPasswordView(View):
     """Step 2: set password, create user, create OTP, redirect to verify OTP."""
 
     def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+
         email = request.session.get('signup_email')
         if not email:
-            return redirect('login')
+            return redirect('signup_start')
         return render(request, 'core/signup/passwordpage.html', {'email': email})
 
     def post(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+
         email = request.session.get('signup_email')
         if not email:
-            return redirect('login')
+            return redirect('signup_start')
 
         password1 = request.POST.get('password1', '')
         password2 = request.POST.get('password2', '')
@@ -112,27 +130,33 @@ class SignupVerifyOtpView(View):
     """Step 3: verify OTP, then login and redirect to welcome screen."""
 
     def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+
         email = request.session.get('signup_email')
         user_id = request.session.get('signup_user_id')
         if not email or not user_id:
-            return redirect('login')
+            return redirect('signup_start')
         try:
             User.objects.get(pk=user_id, email=email)
         except User.DoesNotExist:
             request.session.flush()
-            return redirect('login')
+            return redirect('signup_start')
         return render(request, 'core/signup/verify_otp.html', {'email': email})
 
     def post(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+
         email = request.session.get('signup_email')
         user_id = request.session.get('signup_user_id')
         if not email or not user_id:
-            return redirect('login')
+            return redirect('signup_start')
         try:
             user = User.objects.get(pk=user_id, email=email)
         except User.DoesNotExist:
             request.session.flush()
-            return redirect('login')
+            return redirect('signup_start')
 
         otp_value = (request.POST.get('otp') or '').strip()
         if len(otp_value) != 6 or not otp_value.isdigit():
@@ -173,15 +197,18 @@ class SignupResendOtpView(View):
         return self._resend(request)
 
     def _resend(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+
         email = request.session.get('signup_email')
         user_id = request.session.get('signup_user_id')
         if not email or not user_id:
-            return redirect('login')
+            return redirect('signup_start')
         try:
             user = User.objects.get(pk=user_id, email=email)
         except User.DoesNotExist:
             request.session.flush()
-            return redirect('login')
+            return redirect('signup_start')
         code = _create_otp_for_user(user)
         if __debug__:
             import sys
@@ -199,7 +226,40 @@ class WelcomeView(View):
         # Only show immediately after signup when the flag is present.
         show = request.session.pop('show_welcome', False)
         if not show:
-            return redirect('index')
+            return redirect('dashboard')
 
         return render(request, 'core/welcome.html')
 
+
+class LoginAccountView(View):
+    """Email + password login page for existing users."""
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+        return render(request, 'core/login_account.html')
+
+    def post(self, request):
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+
+        email = (request.POST.get('email') or '').strip().lower()
+        password = request.POST.get('password') or ''
+
+        error = None
+        if not email or not password:
+            error = 'Please enter both email and password.'
+        else:
+            # AUTH_USER_MODEL uses email as USERNAME_FIELD, so pass as username
+            user = authenticate(request, username=email, password=password)
+            if user is None:
+                error = 'Invalid email or password.'
+            else:
+                auth_login(request, user)
+                return redirect('dashboard')
+
+        return render(
+            request,
+            'core/login_account.html',
+            {'error': error, 'email': email},
+        )

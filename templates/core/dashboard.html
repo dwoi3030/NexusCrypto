@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Pro | Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}" type="text/css" media="all">
+</head>
+<body>
+
+<header>
+    <div class="nav-left">
+        <div class="logo">NEXUS PRO</div>
+        <a href="#" class="nav-link active">Markets</a>
+        <a href="#" class="nav-link">Trade</a>
+        <a href="#" class="nav-link">Derivatives</a>
+        <a href="#" class="nav-link">Earn</a>
+    </div>
+    <div class="nav-right">
+        <div class="search-bar"><i class="fas fa-search"></i> Search Assets...</div>
+        <i class="far fa-bell nav-link"></i>
+        <i class="far fa-envelope nav-link"></i>
+        <button class="user-action-btn">Deposit</button>
+        <div class="user-avatar">
+            <img src="https://ui-avatars.com/api/?name={{ request.user.username|default:'User' }}&background=9b51e0&color=fff" alt="avatar">
+        </div>
+    </div>
+</header>
+
+<div class="dashboard-grid">
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar-section">
+        <h3>Menu</h3>
+        <div class="side-btn active"><i class="fas fa-th-large"></i> Overview</div>
+        <div class="side-btn"><i class="fas fa-wallet"></i> Fiat and Spot</div>
+        <div class="side-btn"><i class="fas fa-chart-line"></i> Margin</div>
+        <div class="side-btn"><i class="fas fa-layer-group"></i> Futures</div>
+        <div class="side-btn"><i class="fas fa-piggy-bank"></i> Staking & Earn</div>
+
+        <h3 class="sidebar-heading-account">Account</h3>
+        <div class="side-btn"><i class="fas fa-shield-alt"></i> Security</div>
+        <div class="side-btn"><i class="fas fa-id-card"></i> Identification</div>
+        <div class="side-btn"><i class="fas fa-key"></i> API Management</div>
+    </div>
+
+    <!-- MAIN CENTER CONTENT -->
+    <div class="main-content">
+        <div class="portfolio-summary">
+            <div class="balance-label">Estimated Balance</div>
+            <div class="main-balance">
+                $50.00
+                <span class="main-balance-secondary">≈ 0.00078 BTC</span>
+            </div>
+            <div class="pnl-badge">
+                <i class="fas fa-caret-up"></i>
+                Yesterday's PNL: +$50.00 (100%)
+            </div>
+        </div>
+
+        <h3 class="section-title">Live Market</h3>
+        <table class="market-table">
+            <thead>
+                <tr>
+                    <th>Asset</th>
+                    <th>Price</th>
+                    <th>24h Change</th>
+                    <th>Market Cap</th>
+                    <th>Trade</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="coin-name-cell">
+                        <div class="coin-img coin-img-btc"><i class="fab fa-bitcoin"></i></div>
+                        <div><b>Bitcoin</b> <span class="coin-symbol">BTC</span></div>
+                    </td>
+                    <td><b>$64,321.00</b></td>
+                    <td class="change-positive">+2.4%</td>
+                    <td>$1.26T</td>
+                    <td><a href="#" class="trade-link">Trade</a></td>
+                </tr>
+                <tr>
+                    <td class="coin-name-cell">
+                        <div class="coin-img coin-img-eth"><i class="fab fa-ethereum"></i></div>
+                        <div><b>Ethereum</b> <span class="coin-symbol">ETH</span></div>
+                    </td>
+                    <td><b>$3,450.50</b></td>
+                    <td class="change-positive">+1.1%</td>
+                    <td>$414.2B</td>
+                    <td><a href="#" class="trade-link">Trade</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- RIGHT ACTION BAR -->
+    <div class="actions-section">
+        <div class="bonus-widget">
+            <i class="fas fa-gift bonus-icon"></i>
+            <h4>Welcome Reward</h4>
+            <div class="bonus-amount">$50.00</div>
+            <p class="bonus-caption">Available in your Spot Wallet for trading.</p>
+        </div>
+
+        <div class="swap-card">
+            <div class="swap-header">
+                <h4>Quick Swap</h4>
+                <i class="fas fa-cog swap-settings"></i>
+            </div>
+
+            <div class="swap-input-box">
+                <label>From</label>
+                <div class="swap-row">
+                    <input type="number" value="50.00">
+                    <div class="token-select">USD <i class="fas fa-chevron-down token-caret"></i></div>
+                </div>
+            </div>
+
+            <div class="swap-divider">
+                <div class="swap-divider-inner">
+                    <i class="fas fa-arrow-down swap-divider-icon"></i>
+                </div>
+            </div>
+
+            <div class="swap-input-box">
+                <label>To (Estimated)</label>
+                <div class="swap-row">
+                    <input type="number" placeholder="0.00078">
+                    <div class="token-select">BTC <i class="fas fa-chevron-down token-caret"></i></div>
+                </div>
+            </div>
+
+            <button class="btn-swap">Convert Assets</button>
+            <p class="swap-note">Zero fees for first-time conversion.</p>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+
