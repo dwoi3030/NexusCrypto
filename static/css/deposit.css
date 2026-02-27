@@ -1,0 +1,272 @@
+:root {
+    --bg: #050505;
+    --card-bg: rgba(255, 255, 255, 0.03);
+    --border: rgba(255, 255, 255, 0.08);
+    --accent: #9b51e0;
+    --grad: linear-gradient(90deg, #9b51e0, #e91e63);
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: white;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+
+/* --- Global Header --- */
+.header {
+    padding: 30px 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5, 5, 5, 0.8);
+    backdrop-filter: blur(10px);
+}
+
+.logo {
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -1px;
+}
+
+.logo-icon {
+    color: var(--accent);
+    margin-right: 4px;
+}
+
+.header-secure-text {
+    color: #848e9c;
+    font-size: 14px;
+}
+
+.header-secure-icon {
+    margin-left: 5px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 50px auto;
+    padding: 0 20px;
+}
+
+h1 {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #848e9c;
+    font-size: 18px;
+    margin-bottom: 50px;
+}
+
+.section-title {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #848e9c;
+    margin-bottom: 25px;
+    display: block;
+}
+
+/* --- The Logo Grid --- */
+.method-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+    margin-bottom: 60px;
+}
+
+.bank-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    position: relative;
+}
+
+.bank-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    transform: scale(1.05);
+    border-color: var(--accent);
+    box-shadow: 0 10px 30px rgba(155, 81, 224, 0.2);
+}
+
+.bank-logo {
+    height: 45px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    filter: grayscale(1) brightness(1.5);
+    transition: 0.3s;
+}
+
+.bank-card:hover .bank-logo {
+    filter: grayscale(0) brightness(1);
+}
+
+.bank-logo-icici {
+    color: #f37021;
+}
+
+.bank-logo-sbi {
+    color: #29abe2;
+}
+
+.bank-logo-upi {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.bank-logo-paypal {
+    color: #003087;
+}
+
+.bank-logo-gpay {
+    color: #4285F4;
+}
+
+.bank-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ccc;
+}
+
+.tag {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 9px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: #333;
+    color: #888;
+}
+
+.tag-popular {
+    color: white;
+    background: var(--accent);
+}
+
+/* --- Payment Modal / Sheet --- */
+#paymentModal {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    width: 100%;
+    height: 80vh;
+    background: #0b0e11;
+    border-top: 1px solid var(--border);
+    border-radius: 40px 40px 0 0;
+    z-index: 1000;
+    transition: 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    padding: 50px;
+    box-sizing: border-box;
+}
+
+#paymentModal.active {
+    bottom: 0;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 999;
+    display: none;
+}
+
+.close-btn {
+    position: absolute;
+    top: 30px;
+    right: 40px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #555;
+}
+
+.payment-inner {
+    max-width: 500px;
+}
+
+.target-bank {
+    color: var(--accent);
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.amount-heading {
+    font-size: 42px;
+    margin: 10px 0 30px;
+}
+
+.amount-row {
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+}
+
+.amount-symbol {
+    font-size: 32px;
+    color: #555;
+    margin-right: 15px;
+}
+
+.amount-input {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 64px;
+    font-weight: 800;
+    width: 100%;
+    outline: none;
+}
+
+.fee-text {
+    color: #848e9c;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.deposit-button {
+    width: 100%;
+    padding: 20px;
+    border-radius: 20px;
+    border: none;
+    background: white;
+    color: black;
+    font-weight: 800;
+    font-size: 18px;
+    margin-top: 40px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.deposit-button:hover {
+    transform: translateY(-1px);
+    opacity: 0.95;
+}
+
+@media (max-width: 768px) {
+    #paymentModal {
+        padding: 30px 20px;
+        height: 85vh;
+    }
+}
+

@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Pro | Trade History</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboard_elements/trade_history.css' %}">
+</head>
+<body>
+    <header class="global-header">
+        <div class="nav-left">
+            <a href="{% url 'dashboard' %}" class="logo">NEXUS PRO</a>
+            <a href="#" class="nav-link">Markets</a>
+            <a href="#" class="nav-link active">Trade</a>
+            <a href="#" class="nav-link">Derivatives</a>
+            <a href="#" class="nav-link">Earn</a>
+        </div>
+        <div class="nav-right">
+            <div class="search-bar"><i class="fas fa-search"></i> Search Assets...</div>
+            <i class="far fa-bell nav-icon"></i>
+            <i class="far fa-envelope nav-icon"></i>
+            <a href="{% url 'deposit' %}" class="action-btn">Deposit</a>
+            <div class="user-avatar">
+                <img src="https://ui-avatars.com/api/?name={{ request.user.username|default:'User' }}&background=9b51e0&color=fff" alt="avatar">
+            </div>
+        </div>
+    </header>
+
+    <div class="trade-shell">
+        <aside class="trade-sidebar">
+            <h3>Menu</h3>
+            <a href="{% url 'overview' %}" class="menu-item"><i class="fas fa-th-large"></i> Overview</a>
+            <a href="{% url 'dashboard' %}" class="menu-item"><i class="fas fa-chart-line"></i> Trade</a>
+            <a href="{% url 'fiat_spot' %}" class="menu-item"><i class="fas fa-wallet"></i> Fiat and Spot</a>
+            <a href="#" class="menu-item"><i class="fas fa-chart-line"></i> Margin</a>
+            <a href="#" class="menu-item"><i class="fas fa-layer-group"></i> Futures</a>
+            <a href="{% url 'trade_history' %}" class="menu-item active"><i class="fas fa-clock-rotate-left"></i> Trade History</a>
+            <a href="#" class="menu-item"><i class="fas fa-piggy-bank"></i> Staking and Earn</a>
+        </aside>
+
+        <main class="trade-main">
+            <header class="page-head">
+                <h1>Orders and Transactions</h1>
+                <p>Wallet Balance: <strong>1,000,000.00 USDT</strong></p>
+            </header>
+
+            <div class="tabs" role="tablist" aria-label="History type">
+                <button type="button" class="tab active" data-tab="order">Order History</button>
+                <button type="button" class="tab" data-tab="trade">Trade History</button>
+                <button type="button" class="tab" data-tab="transaction">Transaction History</button>
+            </div>
+
+            <section class="history-card">
+                <table id="history-table">
+                    <thead>
+                        <tr id="table-head"></tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script src="{% static 'js/dashboard_elements/trade_history.js' %}"></script>
+</body>
+</html>

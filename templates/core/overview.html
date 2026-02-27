@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Pro | Pro Overview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/overview.css' %}">
+</head>
+<body>
+    <aside>
+        <div class="logo"><i class="fas fa-bolt logo-bolt"></i> NEXUS PRO</div>
+        <div class="nav-group">
+            <span class="nav-label">Main</span>
+            <a href="{% url 'overview' %}" class="nav-item active">Overview</a>
+            <a href="{% url 'dashboard' %}" class="nav-item">Trade</a>
+            <a href="{% url 'fiat_spot' %}" class="nav-item">Fiat &amp; Spot</a>
+            <a href="#" class="nav-item">Margin</a>
+            <a href="#" class="nav-item">Futures</a>
+        </div>
+        <div class="nav-group">
+            <span class="nav-label">Account</span>
+            <a href="#" class="nav-item">Security</a>
+            <a href="#" class="nav-item">API Keys</a>
+        </div>
+    </aside>
+
+    <main>
+        <header>
+            <h1>Overview</h1>
+        </header>
+
+        <div class="overview-grid">
+            <div class="glass-card">
+                <div class="card-header">
+                    <span class="card-label">Total Balance</span>
+                    <button class="hide-toggle" id="toggleBalance" title="Toggle Visibility" type="button" aria-label="Toggle balance visibility">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+                <div class="card-value" id="balanceAmount">$0.00</div>
+                <div class="card-pnl" id="balancePnl">--</div>
+                <div class="card-glow"></div>
+            </div>
+
+            <div class="glass-card">
+                <span class="card-label">Estimated Monthly Profit</span>
+                <div class="card-value card-value-purple" id="monthlyProfit">$0.00</div>
+                <div class="card-pnl card-pnl-muted" id="nextPayout">Next payout: --</div>
+            </div>
+        </div>
+
+        <div class="glass-card chart-card">
+            <span class="card-label">Profit &amp; Loss (Daily Performance)</span>
+            <div class="chart-container">
+                <svg class="chart-svg" viewBox="0 0 1000 200" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="var(--apple-purple)" />
+                            <stop offset="100%" stop-color="transparent" />
+                        </linearGradient>
+                    </defs>
+                    <line x1="0" y1="50" x2="1000" y2="50" stroke="rgba(255,255,255,0.05)" />
+                    <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" />
+                    <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" />
+                    <path id="overviewChartFill" class="chart-fill" d=""></path>
+                    <path id="overviewChartLine" class="chart-line" d=""></path>
+                </svg>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="assets-title">Your Assets</h3>
+            <table class="assets-table">
+                <thead>
+                    <tr>
+                        <th>Asset</th>
+                        <th>Price</th>
+                        <th>Value</th>
+                        <th>24h Change</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="assetBody"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="{% static 'js/overview.js' %}"></script>
+</body>
+</html>

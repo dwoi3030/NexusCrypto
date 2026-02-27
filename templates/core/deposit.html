@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nexus - Deposit Methods</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/deposit.css' %}" type="text/css" media="all">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo"><i class="fas fa-bolt logo-icon"></i> NexusCrypto</div>
+        <div class="header-secure-text">Secure 256-bit Encryption <i class="fas fa-lock header-secure-icon"></i></div>
+    </header>
+
+    <div class="container">
+        <h1>Deposit Money</h1>
+        <p class="subtitle">Select a verified partner to fund your wallet instantly.</p>
+
+        <!-- INDIA SECTION -->
+        <span class="section-title">India Local Options</span>
+        <div class="method-grid">
+            <div class="bank-card" data-bank="HDFC Bank">
+                <div class="tag">INSTANT</div>
+                <div class="bank-logo"><i class="fas fa-landmark"></i></div>
+                <div class="bank-name">HDFC Bank</div>
+            </div>
+            <div class="bank-card" data-bank="ICICI Bank">
+                <div class="tag">INSTANT</div>
+                <div class="bank-logo bank-logo-icici"><i class="fas fa-university"></i></div>
+                <div class="bank-name">ICICI Bank</div>
+            </div>
+            <div class="bank-card" data-bank="State Bank of India">
+                <div class="bank-logo bank-logo-sbi"><i class="fas fa-building"></i></div>
+                <div class="bank-name">SBI (NetBanking)</div>
+            </div>
+            <div class="bank-card" data-bank="UPI Gateway">
+                <div class="tag tag-popular">POPULAR</div>
+                <div class="bank-logo bank-logo-upi"><i class="fas fa-qrcode"></i></div>
+                <div class="bank-name">UPI (GPay/PhonePe)</div>
+            </div>
+        </div>
+
+        <!-- GLOBAL SECTION -->
+        <span class="section-title">Digital Wallets &amp; Global</span>
+        <div class="method-grid">
+            <div class="bank-card" data-bank="PayPal">
+                <div class="bank-logo bank-logo-paypal"><i class="fab fa-paypal"></i></div>
+                <div class="bank-name">PayPal</div>
+            </div>
+            <div class="bank-card" data-bank="Apple Pay">
+                <div class="bank-logo"><i class="fab fa-apple-pay"></i></div>
+                <div class="bank-name">Apple Pay</div>
+            </div>
+            <div class="bank-card" data-bank="Google Pay">
+                <div class="bank-logo bank-logo-gpay"><i class="fab fa-google-pay"></i></div>
+                <div class="bank-name">Google Pay</div>
+            </div>
+            <div class="bank-card" data-bank="SWIFT Transfer">
+                <div class="bank-logo"><i class="fas fa-globe"></i></div>
+                <div class="bank-name">International Wire</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Deposit Interface Overlay -->
+    <div class="modal-overlay" id="overlay"></div>
+    <div id="paymentModal">
+        <i class="fas fa-times close-btn" id="deposit-close"></i>
+        <div class="payment-inner">
+            <span id="targetBank" class="target-bank"></span>
+            <h2 class="amount-heading">Enter Amount</h2>
+
+            <div class="amount-row">
+                <span class="amount-symbol">$</span>
+                <input type="number" class="amount-input" placeholder="0.00">
+            </div>
+
+            <p class="fee-text">Transaction Fee: <b>$0.00</b> (Nexus Zero-Fee Promotion)</p>
+
+            <button class="deposit-button" id="deposit-submit">
+                Proceed with Deposit
+            </button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/deposit.js' %}"></script>
+</body>
+</html>
+
