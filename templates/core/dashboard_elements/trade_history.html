@@ -36,9 +36,10 @@
             <a href="{% url 'dashboard' %}" class="menu-item"><i class="fas fa-chart-line"></i> Trade</a>
             <a href="{% url 'fiat_spot' %}" class="menu-item"><i class="fas fa-wallet"></i> Fiat and Spot</a>
             <a href="#" class="menu-item"><i class="fas fa-chart-line"></i> Margin</a>
-            <a href="#" class="menu-item"><i class="fas fa-layer-group"></i> Futures</a>
+            <a href="{% url 'futures_dashboard' %}" class="menu-item"><i class="fas fa-layer-group"></i> Futures</a>
             <a href="{% url 'trade_history' %}" class="menu-item active"><i class="fas fa-clock-rotate-left"></i> Trade History</a>
             <a href="#" class="menu-item"><i class="fas fa-piggy-bank"></i> Staking and Earn</a>
+            <a href="{% url 'security' %}" class="menu-item"><i class="fas fa-id-card"></i> Identification</a>
         </aside>
 
         <main class="trade-main">

@@ -18,21 +18,64 @@ document.addEventListener('DOMContentLoaded', function () {
   var pairBase = document.getElementById('pair-base');
   var pairName = document.getElementById('pair-name');
   var pairLogo = document.getElementById('pair-logo');
+  var miniEstimatedAssetsEl = document.getElementById('miniEstimatedAssets');
+  var miniTodaysPnlEl = document.getElementById('miniTodaysPnl');
 
   var chart = null;
   var chartRows = [];
   var allAssets = [];
+  var PORTFOLIO_KEY = 'nexus_portfolio_v1';
+  var DEFAULT_PORTFOLIO = {
+    cashUsd: 50,
+    todaysPnl: 50,
+    holdings: {},
+  };
   var selectedAsset = {
     symbol: 'BTC',
     name: 'Bitcoin',
     image: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
   };
 
+  function readPortfolioState() {
+    try {
+      var raw = localStorage.getItem(PORTFOLIO_KEY);
+      if (!raw) {
+        return {
+          cashUsd: DEFAULT_PORTFOLIO.cashUsd,
+          todaysPnl: DEFAULT_PORTFOLIO.todaysPnl,
+          holdings: {},
+        };
+      }
+      var parsed = JSON.parse(raw);
+      return {
+        cashUsd: Number(parsed.cashUsd || DEFAULT_PORTFOLIO.cashUsd),
+        todaysPnl: Number(parsed.todaysPnl || 0),
+        holdings: parsed.holdings && typeof parsed.holdings === 'object' ? parsed.holdings : {},
+      };
+    } catch (error) {
+      return {
+        cashUsd: DEFAULT_PORTFOLIO.cashUsd,
+        todaysPnl: DEFAULT_PORTFOLIO.todaysPnl,
+        holdings: {},
+      };
+    }
+  }
+
+  function writePortfolioState(state) {
+    localStorage.setItem(PORTFOLIO_KEY, JSON.stringify({
+      cashUsd: Number(state.cashUsd || 0),
+      todaysPnl: Number(state.todaysPnl || 0),
+      holdings: state.holdings || {},
+    }));
+  }
+
+  var portfolioState = readPortfolioState();
   var wallet = {
-    usdt: 50,
-    btc: 0,
+    usdt: portfolioState.cashUsd,
+    holdings: portfolioState.holdings || {},
     latestPrice: 64321,
   };
+  var priceBySymbol = {};
 
   var crosshairPlugin = {
     id: 'crosshairPlugin',
@@ -131,8 +174,34 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function persistPortfolioState() {
+    portfolioState.cashUsd = wallet.usdt;
+    portfolioState.holdings = wallet.holdings;
+    writePortfolioState(portfolioState);
+  }
+
+  function updateMiniPortfolio() {
+    if (!miniEstimatedAssetsEl || !miniTodaysPnlEl) {
+      return;
+    }
+    var estimatedAssets = wallet.usdt;
+    Object.keys(wallet.holdings || {}).forEach(function (symbol) {
+      var amount = Number(wallet.holdings[symbol] || 0);
+      if (amount <= 0) {
+        return;
+      }
+      var knownPrice = Number(priceBySymbol[symbol] || 0);
+      estimatedAssets += amount * knownPrice;
+    });
+
+    var pnl = Number(portfolioState.todaysPnl || 0);
+    miniEstimatedAssetsEl.textContent = '$' + formatUsd(estimatedAssets);
+    miniTodaysPnlEl.textContent = "Today's PNL: " + (pnl >= 0 ? '+$' : '-$') + formatUsd(Math.abs(pnl));
+  }
+
   function setLivePrice(price) {
     wallet.latestPrice = Number(price);
+    priceBySymbol[selectedAsset.symbol] = Number(price);
     var text = '$' + formatUsd(price);
     if (livePrice) {
       livePrice.textContent = text;
@@ -143,6 +212,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (tradePrice) {
       tradePrice.value = Number(price).toFixed(2);
     }
+    updateMiniPortfolio();
   }
 
   function setLiveChange(changePct) {
@@ -155,6 +225,41 @@ document.addEventListener('DOMContentLoaded', function () {
     liveChange.classList.add(positive ? 'positive' : 'negative');
   }
 
+  function buildInlineLogo(symbol) {
+    var text = String(symbol || '?').slice(0, 3).toUpperCase();
+    var svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0%" stop-color="#9b51e0"/><stop offset="100%" stop-color="#e91e63"/>' +
+      '</linearGradient></defs>' +
+      '<rect width="64" height="64" rx="32" fill="url(#g)"/>' +
+      '<text x="50%" y="54%" text-anchor="middle" fill="#ffffff" font-size="22" font-family="Arial, sans-serif" font-weight="700">' + text + '</text>' +
+      '</svg>';
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  }
+
+  function getSymbolLogoUrl(symbol) {
+    var key = String(symbol || '').toUpperCase();
+    var bySymbol = {
+      BTC: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+      ETH: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+      BNB: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+      SOL: 'https://cryptologos.cc/logos/solana-sol-logo.png',
+      XRP: 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
+      ADA: 'https://cryptologos.cc/logos/cardano-ada-logo.png',
+      DOGE: 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+      USDT: 'https://cryptologos.cc/logos/tether-usdt-logo.png',
+      USDC: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
+      TRX: 'https://cryptologos.cc/logos/tron-trx-logo.png',
+      DOT: 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
+      AVAX: 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
+      LTC: 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
+      LINK: 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+      MATIC: 'https://cryptologos.cc/logos/polygon-matic-logo.png',
+    };
+    return bySymbol[key] || '';
+  }
+
   function setPair(asset) {
     selectedAsset = asset;
     if (pairBase) {
@@ -164,10 +269,32 @@ document.addEventListener('DOMContentLoaded', function () {
       pairName.textContent = asset.name;
     }
     if (pairLogo) {
-      var fallback = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(asset.symbol) + '&background=9b51e0&color=fff';
-      pairLogo.src = asset.image || fallback;
+      var symbolLogo = getSymbolLogoUrl(asset.symbol);
+      var fallback = buildInlineLogo(asset.symbol);
+      pairLogo.onerror = function () {
+        if (pairLogo.src !== symbolLogo && symbolLogo) {
+          pairLogo.src = symbolLogo;
+          return;
+        }
+        pairLogo.onerror = null;
+        pairLogo.src = fallback;
+      };
+      pairLogo.src = asset.image || symbolLogo || fallback;
       pairLogo.alt = asset.name || asset.symbol;
     }
+    if (buyBtn) {
+      buyBtn.textContent = 'Buy ' + selectedAsset.symbol;
+    }
+    if (sellBtn) {
+      sellBtn.textContent = 'Sell ' + selectedAsset.symbol;
+    }
+    if (tradeAmount) {
+      var unitEl = tradeAmount.parentElement && tradeAmount.parentElement.querySelector('span');
+      if (unitEl) {
+        unitEl.textContent = selectedAsset.symbol;
+      }
+    }
+    updateMiniPortfolio();
   }
 
   function getTooltipEl(chartInstance) {
@@ -289,6 +416,19 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function buildFallbackSeries(basePrice) {
+    var seed = Number(basePrice || wallet.latestPrice || 0);
+    if (!seed || Number.isNaN(seed)) {
+      seed = 100;
+    }
+    var points = [];
+    for (var i = 0; i < 30; i += 1) {
+      var drift = Math.sin(i / 3) * 0.004 + Math.cos(i / 5) * 0.002;
+      points.push(seed * (1 + drift));
+    }
+    return points;
+  }
+
   async function fetchTopAssets() {
     var response = await fetch('/api/market/top-assets/');
     var payload = await response.json();
@@ -398,6 +538,13 @@ document.addEventListener('DOMContentLoaded', function () {
       buildChart(labels, closes);
       setFeedback('Market data live for ' + base + '.', 'success');
     } catch (err) {
+      var fallback = buildFallbackSeries(wallet.latestPrice);
+      var labels = fallback.map(function (_, i) { return String(i + 1); });
+      buildChart(labels, fallback);
+      if (fallback.length) {
+        setLivePrice(fallback[fallback.length - 1]);
+        setLiveChange(0);
+      }
       setFeedback('Live chart unavailable for ' + base + '.', 'error');
       console.error(err);
     }
@@ -430,8 +577,11 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     wallet.usdt -= cost;
-    wallet.btc += amount;
+    var symbol = selectedAsset.symbol;
+    wallet.holdings[symbol] = Number(wallet.holdings[symbol] || 0) + amount;
     updateAvailable();
+    persistPortfolioState();
+    updateMiniPortfolio();
     tradeRange.value = '0';
     tradeAmount.value = '';
     setFeedback('Buy order executed (simulation).', 'success');
@@ -443,14 +593,21 @@ document.addEventListener('DOMContentLoaded', function () {
       setFeedback('Enter a valid sell amount.', 'error');
       return;
     }
-    if (amount > wallet.btc) {
-      setFeedback('Not enough BTC for this sell.', 'error');
+    var symbol = selectedAsset.symbol;
+    var position = Number(wallet.holdings[symbol] || 0);
+    if (amount > position) {
+      setFeedback('Not enough ' + symbol + ' for this sell.', 'error');
       return;
     }
     var revenue = amount * wallet.latestPrice;
-    wallet.btc -= amount;
+    wallet.holdings[symbol] = position - amount;
+    if (wallet.holdings[symbol] <= 0) {
+      delete wallet.holdings[symbol];
+    }
     wallet.usdt += revenue;
     updateAvailable();
+    persistPortfolioState();
+    updateMiniPortfolio();
     tradeRange.value = '0';
     tradeAmount.value = '';
     setFeedback('Sell order executed (simulation).', 'success');
@@ -483,6 +640,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   updateAvailable();
+  persistPortfolioState();
+  updateMiniPortfolio();
+  setPair(selectedAsset);
 
   fetchTopAssets()
     .then(function (assets) {
@@ -501,8 +661,4 @@ document.addEventListener('DOMContentLoaded', function () {
     refreshMarket(selectedAsset.symbol);
   }, 60000);
   setInterval(refreshTopPriceOnly, 10000);
-<<<<<<< ours
 });
-=======
-});
->>>>>>> theirs

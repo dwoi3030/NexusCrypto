@@ -1,0 +1,171 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Pro | Advanced Futures Terminal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dashboard_terminal/futures.css' %}" type="text/css" media="all">
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="{% url 'dashboard' %}" class="logo"><i class="fas fa-bolt"></i> NEXUS PRO</a>
+            <span class="pipe">|</span>
+            <span class="title">Futures Trading</span>
+        </div>
+        <div class="nav-right">
+            <div id="wallet-usdt" class="wallet-value">50.00 <span>USDT</span></div>
+            <a href="{% url 'dashboard' %}" class="btn-nav">Trade</a>
+            <a href="{% url 'fiat_spot' %}" class="btn-nav">Wallet</a>
+        </div>
+    </nav>
+
+    <div class="ticker-strip">
+        <div class="marquee-track">
+            <div class="marquee" id="marquee"></div>
+            <div class="marquee" id="marquee-clone"></div>
+        </div>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-group pair-title-wrap">
+            <div class="pair-title"><span id="pair-label">BTCUSDT</span> <span class="badge">Perpetual</span></div>
+        </div>
+        <div class="stat-group">
+            <span class="stat-label">Mark Price</span>
+            <span class="stat-val positive" id="mark-price">64,321.05</span>
+        </div>
+        <div class="stat-group">
+            <span class="stat-label">24h Change</span>
+            <span class="stat-val positive" id="change-24h">+0.00%</span>
+        </div>
+        <div class="stat-group">
+            <span class="stat-label">24h High</span>
+            <span class="stat-val" id="high-24h">0.00</span>
+        </div>
+        <div class="stat-group">
+            <span class="stat-label">24h Low</span>
+            <span class="stat-val" id="low-24h">0.00</span>
+        </div>
+        <div class="stat-group">
+            <span class="stat-label">24h Volume</span>
+            <span class="stat-val" id="volume-24h">0.000 BTC</span>
+        </div>
+        <div class="stat-group stat-right">
+            <span class="stat-label">Funding / Countdown</span>
+            <span class="stat-val funding">0.0100% / <span id="countdown">04:12:05</span></span>
+        </div>
+    </div>
+
+    <main class="main-grid">
+        <section class="panel chart-container">
+            <div class="chart-header">
+                <div class="tf-wrap">
+                    <span class="tf-btn" data-limit="30">1m</span>
+                    <span class="tf-btn" data-limit="60">5m</span>
+                    <span class="tf-btn active" data-limit="90">15m</span>
+                    <span class="tf-btn" data-limit="120">1h</span>
+                    <span class="tf-btn" data-limit="240">4h</span>
+                </div>
+            </div>
+            <svg id="candlestick-chart" preserveAspectRatio="none" style="width:100%; height:100%;"></svg>
+        </section>
+
+        <section class="panel positions-panel">
+            <div class="tabs">
+                <div class="tab active">Open Positions(<span id="pos-count">0</span>)</div>
+            </div>
+            <table class="positions-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Size</th>
+                        <th>Entry Price</th>
+                        <th>Mark Price</th>
+                        <th>PnL (ROE%)</th>
+                        <th>Close</th>
+                    </tr>
+                </thead>
+                <tbody id="positions-body">
+                    <tr>
+                        <td colspan="6" class="empty-row">No open futures positions.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="panel order-book">
+            <div class="panel-title">Order Book</div>
+            <div class="ob-list asks-list" id="asks"></div>
+            <div class="spread-row">
+                <span id="mid-price">64,321.00</span>
+                <div>Spread: <span id="spread-value">0.00 (0.000%)</span></div>
+            </div>
+            <div class="ob-list bids-list" id="bids"></div>
+        </section>
+
+        <section class="panel trade-panel">
+            <div class="pill-toggle" id="margin-mode">
+                <div class="pill active">Cross</div>
+                <div class="pill">Isolated</div>
+            </div>
+
+            <div class="lev-badge" id="lev-badge">20x Leverage</div>
+
+            <div class="pill-toggle" id="order-type">
+                <div class="pill active">Limit</div>
+                <div class="pill">Market</div>
+                <div class="pill">Stop</div>
+            </div>
+
+            <div class="input-box">
+                <label>Pair</label>
+                <select id="pair-select"></select>
+            </div>
+
+            <div class="input-box">
+                <label>Price</label>
+                <input type="number" id="price-input" step="0.01">
+                <span class="unit">USDT</span>
+            </div>
+            <div class="input-box">
+                <label>Size</label>
+                <input type="number" id="size-input" placeholder="0.00" step="0.000001" min="0">
+                <span class="unit" id="size-unit">BTC</span>
+            </div>
+
+            <div class="pct-grid">
+                <button class="pct-btn" data-pct="0.25" type="button">25%</button>
+                <button class="pct-btn" data-pct="0.50" type="button">50%</button>
+                <button class="pct-btn" data-pct="0.75" type="button">75%</button>
+                <button class="pct-btn" data-pct="1.00" type="button">100%</button>
+            </div>
+
+            <div class="tpsl-row">
+                <span>TP/SL</span>
+                <i class="fas fa-eye" id="tpsl-toggle"></i>
+            </div>
+            <div id="tpsl-inputs" class="tpsl-inputs">
+                <div class="input-box tp-box"><input type="number" id="tp-input" placeholder="Take Profit"></div>
+                <div class="input-box sl-box"><input type="number" id="sl-input" placeholder="Stop Loss"></div>
+            </div>
+
+            <button class="btn-trade btn-buy" id="buy-btn" type="button">Buy / Long</button>
+            <button class="btn-trade btn-sell" id="sell-btn" type="button">Sell / Short</button>
+            <div id="trade-feedback" class="trade-feedback">Connected to wallet balance and live market data.</div>
+
+            <div class="meta">
+                <div><span>Available Balance</span><span id="available-balance">50.00 USDT</span></div>
+                <div><span>Estimated Margin</span><span id="est-margin">0.00 USDT</span></div>
+                <div><span>Estimated Fee</span><span id="est-fee">0.00 USDT</span></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="{% static 'js/dashboard_terminal/futures.js' %}"></script>
+</body>
+</html>
+

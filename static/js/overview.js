@@ -1,10 +1,19 @@
 document.addEventListener('DOMContentLoaded', function () {
-  var holdings = [
-    { name: 'Bitcoin', symbol: 'BTC', amount: 0.52, color: '#F7931A' },
-    { name: 'Ethereum', symbol: 'ETH', amount: 6.1, color: '#627EEA' },
-    { name: 'Solana', symbol: 'SOL', amount: 42.5, color: '#14F195' },
-    { name: 'Binance Coin', symbol: 'BNB', amount: 15.0, color: '#F3BA2F' },
-  ];
+  var PORTFOLIO_KEY = 'nexus_portfolio_v1';
+  var DEFAULT_PORTFOLIO = {
+    cashUsd: 50,
+    todaysPnl: 50,
+    holdings: {},
+  };
+  var ASSET_META = {
+    BTC: { name: 'Bitcoin', color: '#F7931A' },
+    ETH: { name: 'Ethereum', color: '#627EEA' },
+    SOL: { name: 'Solana', color: '#14F195' },
+    BNB: { name: 'Binance Coin', color: '#F3BA2F' },
+    XRP: { name: 'XRP', color: '#23292F' },
+    ADA: { name: 'Cardano', color: '#2A6CF0' },
+    DOGE: { name: 'Dogecoin', color: '#C2A633' },
+  };
 
   var assetBody = document.getElementById('assetBody');
   var balanceAmountEl = document.getElementById('balanceAmount');
@@ -29,6 +38,48 @@ document.addEventListener('DOMContentLoaded', function () {
   function formatPct(value) {
     var sign = value >= 0 ? '+' : '';
     return sign + value.toFixed(2) + '%';
+  }
+
+  function readPortfolioState() {
+    try {
+      var raw = localStorage.getItem(PORTFOLIO_KEY);
+      if (!raw) {
+        return {
+          cashUsd: DEFAULT_PORTFOLIO.cashUsd,
+          todaysPnl: DEFAULT_PORTFOLIO.todaysPnl,
+          holdings: {},
+        };
+      }
+      var parsed = JSON.parse(raw);
+      return {
+        cashUsd: Number(parsed.cashUsd || DEFAULT_PORTFOLIO.cashUsd),
+        todaysPnl: Number(parsed.todaysPnl || 0),
+        holdings: parsed.holdings && typeof parsed.holdings === 'object' ? parsed.holdings : {},
+      };
+    } catch (error) {
+      return {
+        cashUsd: DEFAULT_PORTFOLIO.cashUsd,
+        todaysPnl: DEFAULT_PORTFOLIO.todaysPnl,
+        holdings: {},
+      };
+    }
+  }
+
+  function getHoldingsFromState(state) {
+    var holdingsMap = state.holdings || {};
+    return Object.keys(holdingsMap).map(function (symbol) {
+      var amount = Number(holdingsMap[symbol] || 0);
+      var upper = String(symbol || '').toUpperCase();
+      var meta = ASSET_META[upper] || { name: upper, color: '#8e8e93' };
+      return {
+        name: meta.name,
+        symbol: upper,
+        amount: amount,
+        color: meta.color,
+      };
+    }).filter(function (item) {
+      return item.amount > 0;
+    });
   }
 
   function getNextPayoutText() {
@@ -72,18 +123,53 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  async function fetchBtcSeries() {
-    var response = await fetch('/api/market/ohlcv/?base=BTC&quote=USDT&period_id=1DAY&limit=30');
+  async function fetchAssetSeries(symbol) {
+    var response = await fetch('/api/market/ohlcv/?base=' + encodeURIComponent(symbol) + '&quote=USDT&period_id=1DAY&limit=30');
     var payload = await response.json();
     if (!response.ok || !payload.ok || !Array.isArray(payload.rows) || !payload.rows.length) {
-      throw new Error('BTC series fetch failed');
+      throw new Error('Series fetch failed for ' + symbol);
     }
     return payload.rows.map(function (row) {
       return Number(row.price_close);
     });
   }
 
+  function buildPortfolioPnlSeries(seriesBySymbol) {
+    var lengths = Object.keys(seriesBySymbol).map(function (symbol) {
+      return (seriesBySymbol[symbol] || []).length;
+    }).filter(function (len) {
+      return len > 0;
+    });
+    if (!lengths.length) {
+      return [];
+    }
+
+    var minLen = Math.min.apply(null, lengths);
+    var totalSeries = [];
+    for (var i = 0; i < minLen; i += 1) {
+      var totalForPoint = 0;
+      for (var h = 0; h < holdings.length; h += 1) {
+        var holding = holdings[h];
+        var points = seriesBySymbol[holding.symbol];
+        var price = points ? Number(points[i] || 0) : 0;
+        totalForPoint += holding.amount * price;
+      }
+      totalSeries.push(totalForPoint);
+    }
+
+    var baseValue = totalSeries[0] || 0;
+    return totalSeries.map(function (portfolioValue) {
+      return portfolioValue - baseValue;
+    });
+  }
+
   function buildPath(values) {
+    if (!values.length) {
+      values = [0, 0];
+    }
+    if (values.length === 1) {
+      values = [values[0], values[0]];
+    }
     var min = Math.min.apply(null, values);
     var max = Math.max.apply(null, values);
     var xStep = 1000 / (values.length - 1);
@@ -106,6 +192,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderAssets(rows) {
     if (!assetBody) {
+      return;
+    }
+    if (!rows.length) {
+      assetBody.innerHTML =
+        '<tr class="asset-empty-row">' +
+          '<td colspan="5" style="padding:18px 0; color: var(--text-secondary);">No assets yet. Buy from Trade to see them here.</td>' +
+        '</tr>';
       return;
     }
     assetBody.innerHTML = rows.map(function (row) {
@@ -135,6 +228,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function hydrateOverview() {
     nextPayoutEl.textContent = getNextPayoutText();
+    var portfolioState = readPortfolioState();
+    var holdings = getHoldingsFromState(portfolioState);
+
+    if (!holdings.length) {
+      currentBalanceText = formatUsd(portfolioState.cashUsd);
+      if (balancePnlEl) {
+        var cashPnlPct = portfolioState.cashUsd ? (portfolioState.todaysPnl / portfolioState.cashUsd) * 100 : 0;
+        var pnlPrefix = portfolioState.todaysPnl >= 0 ? '+ ' : '- ';
+        balancePnlEl.textContent = pnlPrefix + formatUsd(Math.abs(portfolioState.todaysPnl)) + ' (' + formatPct(cashPnlPct) + ')';
+      }
+      if (monthlyProfitEl) {
+        monthlyProfitEl.textContent = formatUsd(portfolioState.todaysPnl);
+      }
+      setBalanceDisplay();
+      renderAssets([]);
+      var emptyPath = buildPath([0, 0, 0, 0, 0, 0]);
+      if (chartLineEl) {
+        chartLineEl.setAttribute('d', emptyPath.line);
+      }
+      if (chartFillEl) {
+        chartFillEl.setAttribute('d', emptyPath.fill);
+      }
+      return;
+    }
 
     try {
       var rows = await Promise.all(holdings.map(async function (holding) {
@@ -150,30 +267,46 @@ document.addEventListener('DOMContentLoaded', function () {
         };
       }));
 
-      var total = rows.reduce(function (sum, item) { return sum + item.value; }, 0);
-      var pnlValue = total * 0.042;
-      var monthly = total * 0.087;
+      var holdingsTotal = rows.reduce(function (sum, item) { return sum + item.value; }, 0);
+      var total = portfolioState.cashUsd + holdingsTotal;
+      var costBasisEstimate = portfolioState.cashUsd + rows.reduce(function (sum, item) {
+        var entryPrice = item.price / (1 + (item.change / 100));
+        return sum + ((entryPrice || item.price) * holdings.find(function (h) { return h.symbol === item.symbol; }).amount);
+      }, 0);
+      var marketPnl = total - costBasisEstimate;
+      var pnlValue = portfolioState.todaysPnl + marketPnl;
       var pnlPct = total ? (pnlValue / total) * 100 : 0;
+      var monthly = pnlValue;
 
       currentBalanceText = formatUsd(total);
-      balancePnlEl.textContent = '+ ' + formatUsd(pnlValue) + ' (' + formatPct(pnlPct) + ')';
+      balancePnlEl.textContent = (pnlValue >= 0 ? '+ ' : '- ') + formatUsd(Math.abs(pnlValue)) + ' (' + formatPct(pnlPct) + ')';
       monthlyProfitEl.textContent = formatUsd(monthly);
       setBalanceDisplay();
       renderAssets(rows);
     } catch (error) {
-      currentBalanceText = '$142,502.84';
+      currentBalanceText = formatUsd(portfolioState.cashUsd);
       if (balancePnlEl) {
-        balancePnlEl.textContent = '+ +$5,240.12 (4.2%)';
+        balancePnlEl.textContent = '+ ' + formatUsd(Math.abs(portfolioState.todaysPnl));
       }
       if (monthlyProfitEl) {
-        monthlyProfitEl.textContent = '$12,400.00';
+        monthlyProfitEl.textContent = formatUsd(portfolioState.todaysPnl);
       }
       setBalanceDisplay();
+      renderAssets([]);
     }
 
     try {
-      var series = await fetchBtcSeries();
-      var path = buildPath(series);
+      var seriesResults = await Promise.all(holdings.map(async function (holding) {
+        var series = await fetchAssetSeries(holding.symbol);
+        return { symbol: holding.symbol, series: series };
+      }));
+      var seriesBySymbol = {};
+      seriesResults.forEach(function (item) {
+        seriesBySymbol[item.symbol] = item.series;
+      });
+
+      var portfolioPnlSeries = buildPortfolioPnlSeries(seriesBySymbol);
+      var path = buildPath(portfolioPnlSeries.length ? portfolioPnlSeries : [0, 0, 0, 0, 0]);
       if (chartLineEl) {
         chartLineEl.setAttribute('d', path.line);
       }
@@ -181,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chartFillEl.setAttribute('d', path.fill);
       }
     } catch (error) {
-      var fallbackPath = buildPath([80, 82, 79, 87, 84, 92, 96, 94, 99, 105]);
+      var fallbackPath = buildPath([0, 120, 40, 180, 130, 260, 220, 340, 280, 420]);
       if (chartLineEl) {
         chartLineEl.setAttribute('d', fallbackPath.line);
       }

@@ -40,6 +40,12 @@ def dashboard(request):
 
 
 @login_required(login_url='login')
+def futures_dashboard(request):
+    """Futures dashboard with live market/orderbook data."""
+    return render(request, 'core/dashboard_terminal/futures.html')
+
+
+@login_required(login_url='login')
 def overview(request):
     """Portfolio overview page with summary cards and assets."""
     return render(request, 'core/overview.html')
@@ -55,6 +61,12 @@ def trade_history(request):
 def fiat_spot(request):
     """Fiat and Spot wallet page."""
     return render(request, 'core/fiat_spot.html')
+
+
+@login_required(login_url='login')
+def security(request):
+    """Identity and verification security page."""
+    return render(request, 'core/security.html')
 
 
 def _coinapi_get(path: str, query: dict[str, str]) -> dict:
@@ -111,6 +123,10 @@ def market_ohlcv(request):
         })
         rows = [{
             'time_period_start': datetime.fromtimestamp(item[0] / 1000, tz=dt_timezone.utc).isoformat(),
+            'time_period_end': datetime.fromtimestamp(item[6] / 1000, tz=dt_timezone.utc).isoformat(),
+            'price_open': float(item[1]),
+            'price_high': float(item[2]),
+            'price_low': float(item[3]),
             'price_close': float(item[4]),
             'volume_traded': float(item[5]),
         } for item in klines]
@@ -129,6 +145,54 @@ def market_price(request):
         ticker = _binance_get('/api/v3/ticker/price', {'symbol': pair})
         data = {'asset_id_base': asset_base, 'asset_id_quote': asset_quote, 'rate': float(ticker['price'])}
         return JsonResponse({'ok': True, 'source': 'binance', 'data': data})
+
+
+@login_required(login_url='login')
+def market_depth(request):
+    base = (request.GET.get('base') or 'BTC').upper()
+    quote = (request.GET.get('quote') or 'USDT').upper()
+    try:
+        limit = min(max(int(request.GET.get('limit', '30')), 5), 100)
+    except ValueError:
+        limit = 30
+
+    try:
+        payload = _binance_get('/api/v3/depth', {
+            'symbol': f'{base}{quote}',
+            'limit': str(limit),
+        })
+        asks = payload.get('asks') or []
+        bids = payload.get('bids') or []
+        return JsonResponse({
+            'ok': True,
+            'source': 'binance',
+            'symbol': f'{base}{quote}',
+            'asks': asks,
+            'bids': bids,
+        })
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'error': f'Failed to load depth: {exc}'}, status=502)
+
+
+@login_required(login_url='login')
+def market_tickers(request):
+    try:
+        tickers = _binance_get('/api/v3/ticker/24hr', {})
+        usdt_pairs = [
+            item for item in tickers
+            if item.get('symbol', '').endswith('USDT')
+        ]
+        usdt_pairs.sort(key=lambda x: float(x.get('quoteVolume', '0') or 0), reverse=True)
+        rows = []
+        for item in usdt_pairs[:24]:
+            rows.append({
+                'symbol': item.get('symbol', ''),
+                'lastPrice': float(item.get('lastPrice', '0') or 0),
+                'priceChangePercent': float(item.get('priceChangePercent', '0') or 0),
+            })
+        return JsonResponse({'ok': True, 'source': 'binance', 'rows': rows})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'error': f'Failed to load tickers: {exc}'}, status=502)
 
 
 @login_required(login_url='login')

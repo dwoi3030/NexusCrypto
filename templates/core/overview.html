@@ -17,11 +17,11 @@
             <a href="{% url 'dashboard' %}" class="nav-item">Trade</a>
             <a href="{% url 'fiat_spot' %}" class="nav-item">Fiat &amp; Spot</a>
             <a href="#" class="nav-item">Margin</a>
-            <a href="#" class="nav-item">Futures</a>
+            <a href="{% url 'futures_dashboard' %}" class="nav-item">Futures</a>
         </div>
         <div class="nav-group">
             <span class="nav-label">Account</span>
-            <a href="#" class="nav-item">Security</a>
+            <a href="{% url 'security' %}" class="nav-item">Identification</a>
             <a href="#" class="nav-item">API Keys</a>
         </div>
     </aside>
@@ -39,8 +39,8 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>
                 </div>
-                <div class="card-value" id="balanceAmount">$0.00</div>
-                <div class="card-pnl" id="balancePnl">--</div>
+                <div class="card-value" id="balanceAmount">$50.00</div>
+                <div class="card-pnl" id="balancePnl">+ $50.00</div>
                 <div class="card-glow"></div>
             </div>
 

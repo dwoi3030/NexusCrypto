@@ -16,7 +16,7 @@
             <div class="logo"><i class="fas fa-bolt logo-bolt"></i> NEXUS PRO</div>
             <a href="#" class="nav-item active">Markets</a>
             <a href="#" class="nav-item">Trade</a>
-            <a href="#" class="nav-item">Futures</a>
+            <a href="{% url 'futures_dashboard' %}" class="nav-item">Futures</a>
             <a href="#" class="nav-item">Earn</a>
         </div>
         <div class="header-right">
@@ -37,12 +37,11 @@
             <a href="{% url 'dashboard' %}" class="side-link active"><i class="fas fa-chart-line"></i> Trade</a>
             <a href="{% url 'fiat_spot' %}" class="side-link"><i class="fas fa-wallet"></i> Fiat &amp; Spot</a>
             <a href="#" class="side-link"><i class="fas fa-bolt"></i> Margin</a>
-            <a href="#" class="side-link"><i class="fas fa-layer-group"></i> Futures</a>
+            <a href="{% url 'futures_dashboard' %}" class="side-link"><i class="fas fa-layer-group"></i> Futures</a>
             <a href="#" class="side-link"><i class="fas fa-piggy-bank"></i> Staking &amp; Earn</a>
 
             <div class="side-label">Personal</div>
-            <a href="#" class="side-link"><i class="fas fa-shield-alt"></i> Security</a>
-            <a href="#" class="side-link"><i class="fas fa-id-card"></i> Identification</a>
+            <a href="{% url 'security' %}" class="side-link"><i class="fas fa-id-card"></i> Identification</a>
             <a href="#" class="side-link"><i class="fas fa-key"></i> API Keys</a>
         </aside>
 
@@ -105,8 +104,8 @@
 
                 <div class="pnl-mini">
                     <div class="pnl-mini-title">ESTIMATED ASSETS</div>
-                    <div class="pnl-mini-value">$50.00</div>
-                    <div class="pnl-mini-change">Today's PNL: +$50.00</div>
+                    <div class="pnl-mini-value" id="miniEstimatedAssets">$50.00</div>
+                    <div class="pnl-mini-change" id="miniTodaysPnl">Today's PNL: +$50.00</div>
                 </div>
             </div>
         </div>

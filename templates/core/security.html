@@ -1,0 +1,128 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Pro | Identity & Verification</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/security.css' %}">
+</head>
+<body>
+    <div class="ambient-glow">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="app-shell">
+        <header>
+            <div class="brand"><i class="fas fa-bolt"></i> NEXUS PRO</div>
+            <div class="user-meta">
+                <span>UID: 882910</span>
+                <div class="avatar">PO</div>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <aside>
+                <a href="{% url 'overview' %}" class="side-link"><i class="fas fa-th-large"></i> Overview</a>
+                <a href="{% url 'dashboard' %}" class="side-link"><i class="fas fa-chart-line"></i> Trade</a>
+                <a href="{% url 'fiat_spot' %}" class="side-link"><i class="fas fa-wallet"></i> Fiat and Spot</a>
+                <a href="#" class="side-link"><i class="fas fa-bolt"></i> Margin</a>
+                <a href="{% url 'futures_dashboard' %}" class="side-link"><i class="fas fa-layer-group"></i> Futures</a>
+                <a href="{% url 'security' %}" class="side-link active"><i class="fas fa-id-card"></i> Identification</a>
+                <a href="#" class="side-link"><i class="fas fa-cog"></i> Settings</a>
+            </aside>
+
+            <main>
+                <div class="kyc-header">
+                    <h1>Identity Verification</h1>
+                    <div class="status-badge pending"><i class="fas fa-hourglass-half"></i> Verification Pending</div>
+                </div>
+
+                <div class="kyc-grid">
+                    <div>
+                        <div class="step-container">
+                            <h3>Verification Progress</h3>
+
+                            <div class="step-row pending">
+                                <div class="step-icon"><i class="fas fa-user"></i></div>
+                                <div class="step-line"></div>
+                                <div>
+                                    <div class="step-title">Personal Information</div>
+                                    <div class="step-text">Pending basic details and contact info submission.</div>
+                                </div>
+                            </div>
+
+                            <div class="step-row pending">
+                                <div class="step-icon"><i class="fas fa-id-card"></i></div>
+                                <div class="step-line"></div>
+                                <div>
+                                    <div class="step-title">Document Verification</div>
+                                    <div class="step-text">Pending government ID upload and review.</div>
+                                </div>
+                            </div>
+
+                            <div class="step-row pending">
+                                <div class="step-icon"><i class="fas fa-user-shield"></i></div>
+                                <div>
+                                    <div class="step-title">Face Recognition (Liveness)</div>
+                                    <div class="step-text">Pending liveness check for account limit activation.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 class="section-title">Identity Details</h3>
+                        <div class="identity-grid">
+                            <div class="identity-card">
+                                <div class="card-label">Legal Full Name</div>
+                                <div class="card-value muted">Pending</div>
+                                <div class="card-label">Nationality</div>
+                                <div class="card-value small muted">Pending</div>
+                            </div>
+                            <div class="identity-card">
+                                <div class="card-label">Government ID</div>
+                                <div class="card-value muted">Pending</div>
+                                <div class="card-label">Expiry Date</div>
+                                <div class="card-value small muted">Pending</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="step-container account-card">
+                            <h3>Demat / Trading Account</h3>
+                            <p>Your trading ID and withdrawal limits will appear after verification.</p>
+
+                            <div class="account-id-wrap">
+                                <div class="card-label">Demat Account ID</div>
+                                <div class="card-value accent">Pending</div>
+                            </div>
+
+                            <div class="limit-box">
+                                <div class="limit-row">
+                                    <span>Withdrawal Limit</span>
+                                    <span class="warning-text">Pending verification</span>
+                                </div>
+                                <div class="limit-track">
+                                    <div class="limit-fill"></div>
+                                </div>
+                            </div>
+
+                            <button class="btn-verify" id="startVerificationBtn" type="button">Start Verification</button>
+                        </div>
+
+                        <div class="shield-box">
+                            <i class="fas fa-user-secret"></i>
+                            <div class="shield-title">Data Protection</div>
+                            <p>Your documents are protected with AES-256 encryption and securely stored.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="{% static 'js/security.js' %}"></script>
+</body>
+</html>
