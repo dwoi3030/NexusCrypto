@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Pro - Live Crypto News</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboard_terminal/news.css' %}">
+</head>
+<body data-user-id="{{ request.user.id|default:'0' }}">
+    <div class="page-layout">
+        <aside class="sidebar">
+            <div class="side-label">Navigation</div>
+            <a href="{% url 'overview' %}" class="side-link"><i class="fas fa-chart-pie"></i> Overview</a>
+            <a href="{% url 'dashboard' %}" class="side-link"><i class="fas fa-chart-line"></i> Trade</a>
+            <a href="{% url 'fiat_spot' %}" class="side-link"><i class="fas fa-wallet"></i> Fiat &amp; Spot</a>
+            <a href="{% url 'margin_dashboard' %}" class="side-link"><i class="fas fa-bolt"></i> Margin</a>
+            <a href="{% url 'futures_dashboard' %}" class="side-link"><i class="fas fa-layer-group"></i> Futures</a>
+            <a href="{% url 'staking_earn' %}" class="side-link"><i class="fas fa-piggy-bank"></i> Staking &amp; Earn</a>
+            <a href="{% url 'convert_asset' %}" class="side-link"><i class="fas fa-right-left"></i> Convert Asset</a>
+            <a href="{% url 'news_dashboard' %}" class="side-link active"><i class="fas fa-newspaper"></i> News</a>
+
+            <div class="side-label">Personal</div>
+            <a href="{% url 'verification' %}" class="side-link"><i class="fas fa-id-card"></i> Identification</a>
+            <a href="{% url 'security' %}" class="side-link"><i class="fas fa-cog"></i> Settings</a>
+        </aside>
+
+        <main class="news-area">
+            <div class="container">
+                <div class="page-header">
+                    <div class="title-section">
+                        <h1>Market Intel</h1>
+                        <p>Live cryptocurrency news and updates.</p>
+                        <p class="api-note"><i class="fas fa-circle-info"></i> Powered by CryptoCompare Free News API (no API key required).</p>
+                    </div>
+                    <div class="filters" id="filterContainer">
+                        <button class="filter-btn active" type="button" data-category="ALL">Latest News</button>
+                        <button class="filter-btn" type="button" data-category="BTC">Bitcoin</button>
+                        <button class="filter-btn" type="button" data-category="ETH">Ethereum</button>
+                        <button class="filter-btn" type="button" data-category="DEFI">DeFi</button>
+                        <button class="filter-btn" type="button" data-category="REGULATION">Regulation</button>
+                    </div>
+                </div>
+
+                <div class="news-grid" id="newsGrid">
+                    <div class="loader-container">
+                        <div class="loader"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{% static 'js/dashboard_terminal/news.js' %}"></script>
+</body>
+</html>
