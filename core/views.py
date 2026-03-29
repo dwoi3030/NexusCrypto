@@ -1,5 +1,6 @@
 import random
 import json
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta, timezone as dt_timezone
 from urllib import parse, request as urllib_request
 from urllib.error import HTTPError, URLError
@@ -9,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.password_validation import validate_password
 from django.conf import settings
+from django.db import DatabaseError, connection, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -17,6 +19,63 @@ from django.views import View
 from accounts.models import OTP
 
 User = get_user_model()
+
+
+def _get_user_wallet_usd(user) -> Decimal:
+    """Return backend wallet balance for a user from accounts_wallet."""
+    if not user or not getattr(user, 'is_authenticated', False):
+        return Decimal('0.00')
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT available_usd FROM accounts_wallet WHERE user_id = %s LIMIT 1",
+                [user.id],
+            )
+            row = cursor.fetchone()
+            if not row or row[0] is None:
+                return Decimal('0.00')
+            return Decimal(str(row[0])).quantize(Decimal('0.01'))
+    except (DatabaseError, InvalidOperation, TypeError, ValueError):
+        return Decimal('0.00')
+
+
+def _wallet_context(user) -> dict:
+    amount = _get_user_wallet_usd(user)
+    return {
+        'wallet_usd': amount,
+        'wallet_usd_display': f'{amount:,.2f}',
+        'wallet_usdt_4dp': f'{amount:.4f}',
+    }
+
+
+def _credit_user_wallet(user, credit_amount: Decimal) -> Decimal:
+    """Atomically credit a user's wallet balance and return new amount."""
+    if credit_amount <= 0:
+        return _get_user_wallet_usd(user)
+
+    now = timezone.now()
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, available_usd FROM accounts_wallet WHERE user_id = %s LIMIT 1",
+                [user.id],
+            )
+            row = cursor.fetchone()
+            if row:
+                wallet_id, current_amount = row[0], Decimal(str(row[1] or 0))
+                new_amount = (current_amount + credit_amount).quantize(Decimal('0.01'))
+                cursor.execute(
+                    "UPDATE accounts_wallet SET available_usd = %s, updated_at = %s WHERE id = %s",
+                    [str(new_amount), now, wallet_id],
+                )
+                return new_amount
+
+            new_amount = credit_amount.quantize(Decimal('0.01'))
+            cursor.execute(
+                "INSERT INTO accounts_wallet (available_usd, updated_at, user_id) VALUES (%s, %s, %s)",
+                [str(new_amount), now, user.id],
+            )
+            return new_amount
 
 
 def _create_otp_for_user(user):
@@ -36,37 +95,55 @@ def index(request):
 @login_required(login_url='login')
 def dashboard(request):
     """Main dashboard; only authenticated users can view it."""
-    return render(request, 'core/dashboard_terminal/dashboard.html')
+    return render(request, 'core/dashboard_terminal/dashboard.html', _wallet_context(request.user))
+
+
+@login_required(login_url='login')
+def staking_earn(request):
+    """Staking and earn dashboard page."""
+    return render(request, 'core/dashboard_terminal/staking_earn.html', _wallet_context(request.user))
 
 
 @login_required(login_url='login')
 def futures_dashboard(request):
     """Futures dashboard with live market/orderbook data."""
-    return render(request, 'core/dashboard_terminal/futures.html')
+    return render(request, 'core/dashboard_terminal/futures.html', _wallet_context(request.user))
+
+
+@login_required(login_url='login')
+def margin_dashboard(request):
+    """Margin dashboard with live chart/orderbook/trades."""
+    return render(request, 'core/dashboard_terminal/margin.html', _wallet_context(request.user))
 
 
 @login_required(login_url='login')
 def overview(request):
     """Portfolio overview page with summary cards and assets."""
-    return render(request, 'core/overview.html')
+    return render(request, 'core/overview.html', _wallet_context(request.user))
 
 
 @login_required(login_url='login')
 def trade_history(request):
     """Trade history dashboard element page."""
-    return render(request, 'core/dashboard_elements/trade_history.html')
+    return render(request, 'core/dashboard_elements/trade_history.html', _wallet_context(request.user))
 
 
 @login_required(login_url='login')
 def fiat_spot(request):
     """Fiat and Spot wallet page."""
-    return render(request, 'core/fiat_spot.html')
+    return render(request, 'core/fiat_spot.html', _wallet_context(request.user))
 
 
 @login_required(login_url='login')
 def security(request):
-    """Identity and verification security page."""
+    """Settings page."""
     return render(request, 'core/security.html')
+
+
+@login_required(login_url='login')
+def verification(request):
+    """Identity verification page."""
+    return render(request, 'core/verification.html')
 
 
 def _coinapi_get(path: str, query: dict[str, str]) -> dict:
@@ -189,10 +266,41 @@ def market_tickers(request):
                 'symbol': item.get('symbol', ''),
                 'lastPrice': float(item.get('lastPrice', '0') or 0),
                 'priceChangePercent': float(item.get('priceChangePercent', '0') or 0),
+                'highPrice': float(item.get('highPrice', '0') or 0),
+                'lowPrice': float(item.get('lowPrice', '0') or 0),
+                'volume': float(item.get('volume', '0') or 0),
+                'quoteVolume': float(item.get('quoteVolume', '0') or 0),
             })
         return JsonResponse({'ok': True, 'source': 'binance', 'rows': rows})
     except Exception as exc:
         return JsonResponse({'ok': False, 'error': f'Failed to load tickers: {exc}'}, status=502)
+
+
+@login_required(login_url='login')
+def market_trades(request):
+    base = (request.GET.get('base') or 'BTC').upper()
+    quote = (request.GET.get('quote') or 'USDT').upper()
+    try:
+        limit = min(max(int(request.GET.get('limit', '20')), 10), 100)
+    except ValueError:
+        limit = 20
+
+    try:
+        payload = _binance_get('/api/v3/trades', {
+            'symbol': f'{base}{quote}',
+            'limit': str(limit),
+        })
+        rows = [{
+            'id': item.get('id'),
+            'price': float(item.get('price', '0') or 0),
+            'qty': float(item.get('qty', '0') or 0),
+            'quoteQty': float(item.get('quoteQty', '0') or 0),
+            'time': int(item.get('time', 0) or 0),
+            'isBuyerMaker': bool(item.get('isBuyerMaker', False)),
+        } for item in payload]
+        return JsonResponse({'ok': True, 'source': 'binance', 'symbol': f'{base}{quote}', 'rows': rows})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'error': f'Failed to load trades: {exc}'}, status=502)
 
 
 @login_required(login_url='login')
@@ -315,6 +423,7 @@ class SignupPasswordView(View):
         if __debug__:
             import sys
             print(f'[OTP for {email}]: {code}', file=sys.stderr)
+        request.session['signup_otp_preview'] = code
 
         request.session['signup_user_id'] = user.pk
         return redirect('signup_verify_otp')
@@ -336,7 +445,10 @@ class SignupVerifyOtpView(View):
         except User.DoesNotExist:
             request.session.flush()
             return redirect('signup_start')
-        return render(request, 'core/signup/verify_otp.html', {'email': email})
+        return render(request, 'core/signup/verify_otp.html', {
+            'email': email,
+            'otp_preview': request.session.get('signup_otp_preview'),
+        })
 
     def post(self, request):
         if request.user.is_authenticated:
@@ -357,6 +469,7 @@ class SignupVerifyOtpView(View):
             return render(request, 'core/signup/verify_otp.html', {
                 'email': email,
                 'error': 'Please enter a valid 6-digit code.',
+                'otp_preview': request.session.get('signup_otp_preview'),
             })
 
         now = timezone.now()
@@ -369,12 +482,13 @@ class SignupVerifyOtpView(View):
             return render(request, 'core/signup/verify_otp.html', {
                 'email': email,
                 'error': 'Invalid or expired code. Please try again or resend.',
+                'otp_preview': request.session.get('signup_otp_preview'),
             })
 
         otp_record.is_used = True
         otp_record.save(update_fields=['is_used'])
         # Clear signup info and mark that we should show the welcome screen once.
-        for key in ('signup_email', 'signup_user_id'):
+        for key in ('signup_email', 'signup_user_id', 'signup_otp_preview'):
             request.session.pop(key, None)
         request.session['show_welcome'] = True
         auth_login(request, user)
@@ -407,6 +521,7 @@ class SignupResendOtpView(View):
         if __debug__:
             import sys
             print(f'[OTP resend for {email}]: {code}', file=sys.stderr)
+        request.session['signup_otp_preview'] = code
         return redirect('signup_verify_otp')
 
 
@@ -466,3 +581,90 @@ class DepositView(View):
         if not request.user.is_authenticated:
             return redirect('login')
         return render(request, 'core/deposit.html')
+
+class PaymentView(View):
+    """Secure checkout payment page - requires authenticated user."""
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return redirect('login')
+        bank = (request.GET.get('bank') or 'HDFC Bank').strip()
+        raw_amount = (request.GET.get('amount') or '0').strip()
+        try:
+            amount = Decimal(raw_amount)
+        except (InvalidOperation, TypeError):
+            amount = Decimal('0')
+
+        if amount < 0:
+            amount = Decimal('0')
+
+        amount = amount.quantize(Decimal('0.01'))
+        network_fee_rate = Decimal(str(getattr(settings, 'DEPOSIT_NETWORK_FEE_RATE', '0')))
+        tax_rate = Decimal(str(getattr(settings, 'DEPOSIT_TAX_RATE', '0')))
+        if network_fee_rate < 0:
+            network_fee_rate = Decimal('0')
+        if tax_rate < 0:
+            tax_rate = Decimal('0')
+
+        subtotal = amount
+        network_fee = (subtotal * network_fee_rate).quantize(Decimal('0.01'))
+        tax_amount = (subtotal * tax_rate).quantize(Decimal('0.01'))
+        total = (subtotal + network_fee + tax_amount).quantize(Decimal('0.01'))
+
+        context = {
+            'selected_bank': bank,
+            'currency': 'USD',
+            'item_title': f'Wallet Deposit via {bank}',
+            'subtotal': f'{subtotal:.2f}',
+            'network_fee': f'{network_fee:.2f}',
+            'tax_label': f'Tax ({(tax_rate * Decimal("100")).quantize(Decimal("0.01"))}%)',
+            'tax_amount': f'{tax_amount:.2f}',
+            'total': f'{total:.2f}',
+            'countries': [
+                ('US', 'United States'),
+                ('IN', 'India'),
+                ('CA', 'Canada'),
+                ('UK', 'United Kingdom'),
+                ('AU', 'Australia'),
+                ('EU', 'European Union'),
+            ],
+        }
+        context.update(_wallet_context(request.user))
+        return render(request, 'core/payment.html', context)
+
+
+class PaymentCompleteView(View):
+    """Finalize demo payment and credit backend wallet."""
+
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'ok': False, 'error': 'Authentication required.'}, status=401)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'Invalid payload.'}, status=400)
+
+        raw_amount = payload.get('amount', '0')
+        method = str(payload.get('method', 'Card')).strip()
+        try:
+            amount = Decimal(str(raw_amount)).quantize(Decimal('0.01'))
+        except (InvalidOperation, TypeError, ValueError):
+            return JsonResponse({'ok': False, 'error': 'Invalid amount.'}, status=400)
+
+        if amount <= 0:
+            return JsonResponse({'ok': False, 'error': 'Amount must be positive.'}, status=400)
+        if amount > Decimal('1000000.00'):
+            return JsonResponse({'ok': False, 'error': 'Amount exceeds demo limit.'}, status=400)
+
+        try:
+            new_balance = _credit_user_wallet(request.user, amount)
+        except Exception as exc:
+            return JsonResponse({'ok': False, 'error': f'Failed to credit wallet: {exc}'}, status=500)
+
+        return JsonResponse({
+            'ok': True,
+            'method': method,
+            'credited_amount': f'{amount:.2f}',
+            'wallet_balance': f'{new_balance:.2f}',
+        })

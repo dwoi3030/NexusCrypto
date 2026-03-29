@@ -6,19 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus Pro | Advanced Trading Terminal</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="{% static 'css/dashboard_terminal/dashboard.css' %}" type="text/css" media="all">
 </head>
 <body>
 <div class="app-wrapper">
+    <div class="ticker-strip">
+        <div class="ticker-track" id="ticker-track">
+            <div class="ticker-marquee" id="ticker-marquee"></div>
+            <div class="ticker-marquee" id="ticker-marquee-clone"></div>
+        </div>
+    </div>
     <header>
         <div class="header-left">
             <div class="logo"><i class="fas fa-bolt logo-bolt"></i> NEXUS PRO</div>
+        </div>
+        <nav class="header-center" aria-label="Primary">
             <a href="#" class="nav-item active">Markets</a>
             <a href="#" class="nav-item">Trade</a>
             <a href="{% url 'futures_dashboard' %}" class="nav-item">Futures</a>
             <a href="#" class="nav-item">Earn</a>
-        </div>
+        </nav>
         <div class="header-right">
             <div class="search-container">
                 <i class="fas fa-search"></i>
@@ -36,12 +43,13 @@
             <a href="{% url 'overview' %}" class="side-link"><i class="fas fa-chart-pie"></i> Overview</a>
             <a href="{% url 'dashboard' %}" class="side-link active"><i class="fas fa-chart-line"></i> Trade</a>
             <a href="{% url 'fiat_spot' %}" class="side-link"><i class="fas fa-wallet"></i> Fiat &amp; Spot</a>
-            <a href="#" class="side-link"><i class="fas fa-bolt"></i> Margin</a>
+            <a href="{% url 'margin_dashboard' %}" class="side-link"><i class="fas fa-bolt"></i> Margin</a>
             <a href="{% url 'futures_dashboard' %}" class="side-link"><i class="fas fa-layer-group"></i> Futures</a>
-            <a href="#" class="side-link"><i class="fas fa-piggy-bank"></i> Staking &amp; Earn</a>
+            <a href="{% url 'staking_earn' %}" class="side-link"><i class="fas fa-piggy-bank"></i> Staking &amp; Earn</a>
 
             <div class="side-label">Personal</div>
-            <a href="{% url 'security' %}" class="side-link"><i class="fas fa-id-card"></i> Identification</a>
+            <a href="{% url 'verification' %}" class="side-link"><i class="fas fa-id-card"></i> Identification</a>
+            <a href="{% url 'security' %}" class="side-link"><i class="fas fa-cog"></i> Settings</a>
             <a href="#" class="side-link"><i class="fas fa-key"></i> API Keys</a>
         </aside>
 
@@ -52,24 +60,42 @@
                     <div>
                         <div class="pair-title"><span id="pair-base">BTC</span> / USDT <span class="pair-subtitle" id="pair-name">Bitcoin</span></div>
                         <div class="price-up"><span id="live-price">$64,321.00</span> <span class="price-change" id="live-change">+2.45%</span></div>
+                        <div class="pair-stats-bar">
+                            <span>24h Change <b id="stat-change">+0.00%</b></span>
+                            <span>24h High <b id="stat-high">0.00</b></span>
+                            <span>24h Low <b id="stat-low">0.00</b></span>
+                            <span>24h Vol(BTC) <b id="stat-vol-btc">0.00</b></span>
+                            <span>24h Vol(USDT) <b id="stat-vol-usdt">0.00</b></span>
+                        </div>
                     </div>
                 </div>
                 <div class="chart-container">
+                    <div class="timeframe-tabs" id="timeframe-tabs">
+                        <button type="button" class="tf-btn" data-interval="1m">1m</button>
+                        <button type="button" class="tf-btn" data-interval="5m">5m</button>
+                        <button type="button" class="tf-btn" data-interval="15m">15m</button>
+                        <button type="button" class="tf-btn active" data-interval="1h">1H</button>
+                        <button type="button" class="tf-btn" data-interval="4h">4H</button>
+                        <button type="button" class="tf-btn" data-interval="1d">1D</button>
+                    </div>
                     <canvas id="priceChart"></canvas>
+                    <canvas id="crosshair-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;"></canvas>
+                    <div id="ohlc-tooltip" class="ohlc-tooltip">
+                        <span id="tt-date"></span>
+                        <span>O: <b id="tt-open" style="color:#eaecef"></b></span>
+                        <span>H: <b id="tt-high" style="color:#0ecb81"></b></span>
+                        <span>L: <b id="tt-low" style="color:#f6465d"></b></span>
+                        <span>C: <b id="tt-close" style="color:#eaecef"></b></span>
+                        <span>V: <b id="tt-vol" style="color:#eaecef"></b></span>
+                    </div>
                 </div>
             </div>
 
             <div class="panel panel-border-left">
-                <div class="ob-header"><span>Price(USDT)</span> <span>Amount(BTC)</span></div>
-                <div class="ob-row sell"><span>64335.2</span> <span>0.1244</span></div>
-                <div class="ob-row sell"><span>64330.1</span> <span>1.5521</span></div>
-                <div class="ob-row sell"><span>64328.0</span> <span>0.0045</span></div>
-
+                <div class="ob-header"><span>Price(USDT)</span> <span>Amount(BTC)</span> <span>Total</span></div>
+                <div class="ob-list" id="asks-list"></div>
                 <div class="last-price" id="last-price">$64,321.00</div>
-
-                <div class="ob-row buy"><span>64318.5</span> <span>2.1102</span></div>
-                <div class="ob-row buy"><span>64315.0</span> <span>0.0450</span></div>
-                <div class="ob-row buy"><span>64311.2</span> <span>1.9008</span></div>
+                <div class="ob-list" id="bids-list"></div>
             </div>
 
             <div class="panel panel-border-left">
@@ -81,7 +107,13 @@
 
                 <div class="available-row">
                     <span>Avbl</span>
-                    <span id="available-usdt">50.00 USDT</span>
+                    <span id="available-usdt">{{ wallet_usd_display }} USDT</span>
+                </div>
+
+                <div class="order-type-tabs" id="order-type-tabs">
+                    <button type="button" class="order-type-tab active">Limit</button>
+                    <button type="button" class="order-type-tab">Market</button>
+                    <button type="button" class="order-type-tab">Stop Limit</button>
                 </div>
 
                 <div class="input-box">
@@ -93,20 +125,23 @@
                 <div class="input-box">
                     <label>Amount</label>
                     <input type="number" id="trade-amount" placeholder="0.00" step="0.000001" min="0">
-                    <span>BTC</span>
+                    <span id="trade-amount-unit">BTC</span>
                 </div>
 
-                <input type="range" id="trade-range" class="trade-range" min="0" max="100" value="0">
+                <div class="pct-grid">
+                    <button class="pct-btn" data-pct="0.25" type="button">25%</button>
+                    <button class="pct-btn" data-pct="0.50" type="button">50%</button>
+                    <button class="pct-btn" data-pct="0.75" type="button">75%</button>
+                    <button class="pct-btn" data-pct="1.00" type="button">100%</button>
+                </div>
 
                 <button class="btn-buy" id="buy-btn" type="button">Buy BTC</button>
                 <button class="btn-sell" id="sell-btn" type="button">Sell BTC</button>
-                <div id="trade-feedback" class="trade-feedback">Use slider or amount to place a trade.</div>
-
-                <div class="pnl-mini">
-                    <div class="pnl-mini-title">ESTIMATED ASSETS</div>
-                    <div class="pnl-mini-value" id="miniEstimatedAssets">$50.00</div>
-                    <div class="pnl-mini-change" id="miniTodaysPnl">Today's PNL: +$50.00</div>
+                <div class="calc-lines">
+                    <div><span>Fee (0.1%):</span><span id="calc-fee">0.00 USDT</span></div>
+                    <div><span>Total:</span><span id="calc-total">0.00 USDT</span></div>
                 </div>
+                <div id="trade-feedback" class="trade-feedback">Use amount or percentage to place a trade.</div>
             </div>
         </div>
     </div>
@@ -120,11 +155,16 @@
             <div class="dropdown-id">Verified ID: 882910</div>
         </div>
     </div>
-    <a href="#" class="side-link"><i class="fas fa-user-circle"></i> Profile Settings</a>
+    <a href="{% url 'security' %}" class="side-link"><i class="fas fa-user-circle"></i> Profile Settings</a>
     <a href="#" class="side-link"><i class="fas fa-gift"></i> Reward Center ($50)</a>
     <a href="#" class="side-link logout-link"><i class="fas fa-sign-out-alt"></i> Log Out Session</a>
 </div>
 
+<script>
+    window.__NEXUS_USER_ID__ = '{{ request.user.id|default:"0" }}';
+    window.__NEXUS_WALLET_USD__ = Number('{{ wallet_usd|floatformat:2 }}');
+</script>
+<script src="{% static 'js/shared/portfolio_sync.js' %}"></script>
 <script src="{% static 'js/dashboard_terminal/dashboard.js' %}"></script>
 </body>
 </html>
